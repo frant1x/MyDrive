@@ -7,9 +7,12 @@ from .serializers import RegisterSerializer
 
 
 class RegisterView(APIView):
+    """View for user registration."""
+
     permission_classes = [AllowAny]
 
     def post(self, request):
+        """Handle user registration."""
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
