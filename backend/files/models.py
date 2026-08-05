@@ -3,8 +3,8 @@ from authentication.models import User
 
 
 class File(models.Model):
-    file = models.BinaryField()
+    file_key = models.CharField(max_length=512, unique=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="files")
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
     size = models.PositiveBigIntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
