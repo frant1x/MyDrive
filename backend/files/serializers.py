@@ -7,21 +7,21 @@ class FileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = File
-        fields = ["id", "uploaded_file", "user", "name", "size", "created_at"]
-        read_only_fields = ["id", "user", "name", "size", "created_at"]
+        fields = [
+            "id",
+            "uploaded_file",
+            "file_key",
+            "user",
+            "name",
+            "size",
+            "created_at",
+        ]
+        read_only_fields = ["id", "user", "name", "size", "created_at", "file_key"]
 
     def create(self, validated_data):
-        uploaded_file = validated_data.pop("uploaded_file")
+        validated_data.pop("uploaded_file", None)
 
-        file_bytes = uploaded_file.read()
-        file_name = uploaded_file.name
-        file_size = uploaded_file.size
-
-        user = validated_data.pop("user")
-
-        return File.objects.create(
-            file=file_bytes, user=user, name=file_name, size=file_size
-        )
+        return super().create(validated_data)
 
 
 class FileUpdateSerializer(serializers.ModelSerializer):
