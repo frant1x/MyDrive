@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 @receiver(post_delete, sender=File)
 def delete_file_from_s3(sender, instance, **kwargs):
+    """Signal receiver to delete the file from S3 when a File instance is deleted."""
     if instance.file_key:
         try:
             s3_service.delete_file(instance.file_key)
