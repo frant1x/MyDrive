@@ -3,28 +3,22 @@ from .models import File
 
 
 class FileSerializer(serializers.ModelSerializer):
-    """Serializer for the File model, handling file uploads and metadata."""
+    """Serializer for the File model, providing file metadata and presigned upload URL."""
 
-    uploaded_file = serializers.FileField(write_only=True)
+    presigned_url = serializers.CharField(read_only=True)
 
     class Meta:
         model = File
         fields = [
             "id",
-            "uploaded_file",
+            "presigned_url",
             "file_key",
             "user",
             "name",
             "size",
             "created_at",
         ]
-        read_only_fields = ["id", "user", "name", "size", "created_at", "file_key"]
-
-    def create(self, validated_data):
-        """Override the create method to handle file upload and metadata extraction."""
-        validated_data.pop("uploaded_file", None)
-
-        return super().create(validated_data)
+        read_only_fields = ["id", "user", "created_at", "file_key", "presigned_url"]
 
 
 class FileUpdateSerializer(serializers.ModelSerializer):

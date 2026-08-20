@@ -8,8 +8,6 @@ from .models import File
 class FileViewSet(ModelViewSet):
     """ViewSet for managing file uploads, updates, and deletions."""
 
-    parser_classes = [MultiPartParser, FormParser]
-
     def get_queryset(self):
         """Return the queryset of files belonging to the authenticated user."""
         user = self.request.user
@@ -23,14 +21,16 @@ class FileViewSet(ModelViewSet):
         return FileSerializer
 
     def perform_create(self, serializer):
-        """Handle file upload to S3 and save the file metadata in the database."""
-        uploaded_file = serializer.validated_data["uploaded_file"]
+        """Save file metadata to DB and generate a presigned URL for direct S3 upload."""
+        filename = serializer.validated_data["name"]
 
-        file_key = s3_service.upload_file(uploaded_file, self.request.user.id)
+        file_key, presigned_url = s3_service.generate_presigned_url(
+            self.request.user.id, filename
+        )
 
-        serializer.save(
+        instance = serializer.save(
             user=self.request.user,
             file_key=file_key,
-            name=uploaded_file.name,
-            size=uploaded_file.size,
         )
+
+        instance.presigned_url = presigned_url
