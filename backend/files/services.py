@@ -15,6 +15,13 @@ class S3Service:
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         )
+        self.public_s3_client = boto3.client(
+            "s3",
+            endpoint_url=settings.AWS_S3_PUBLIC_ENDPOINT_URL,
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        )
+
         self.bucket_name = settings.AWS_STORAGE_BUCKET_NAME
 
     def generate_presigned_url(self, user_id, filename):
@@ -22,7 +29,7 @@ class S3Service:
         unique_name = f"{uuid.uuid4().hex}_{filename}"
         file_key = f"user_{user_id}/{unique_name}"
 
-        upload_url = self.s3_client.generate_presigned_url(
+        upload_url = self.public_s3_client.generate_presigned_url(
             "put_object",
             Params={"Bucket": self.bucket_name, "Key": file_key},
             ExpiresIn=900,
