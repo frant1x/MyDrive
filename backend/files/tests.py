@@ -25,34 +25,35 @@ class FileAPITestCase(APITestCase):
 
         self.client.force_authenticate(user=self.user_a)
 
-    @patch("files.views.s3_service.upload_file")
-    def test_upload_file_success(self, mock_upload_file):
-        """Test successful file upload."""
+    @patch("files.views.s3_service.generate_presigned_url")
+    def test_create_file_generates_presigned_url(self, mock_generate_url):
+        """Test creating a file record and receiving a presigned upload URL."""
         mock_file_key = f"user_{self.user_a.id}/fake-uuid_document.pdf"
-        mock_upload_file.return_value = mock_file_key
+        mock_upload_url = "http://localhost:9000/my-app-files/presigned-url"
+        mock_generate_url.return_value = (mock_file_key, mock_upload_url)
 
-        file_content = b"Test binary content for file"
-        uploaded_file = SimpleUploadedFile(
-            "file.pdf", file_content, content_type="application/pdf"
-        )
+        body = {
+            "name": "document.pdf",
+            "size": 1024,
+        }
+        response = self.client.post(self.list_url, body, format="json")
 
-        body = {"uploaded_file": uploaded_file}
-        response = self.client.post(self.list_url, body, format="multipart")
+        self.assertEqual(response.data["presigned_url"], mock_upload_url)
+        self.assertEqual(response.data["file_key"], mock_file_key)
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-        mock_upload_file.assert_called_once()
+        mock_generate_url.assert_called_once_with(self.user_a.id, "document.pdf")
 
         db_file = File.objects.first()
         self.assertIsNotNone(db_file)
         self.assertEqual(db_file.file_key, mock_file_key)
 
-    def test_upload_string_instead_of_file(self):
-        """Test uploading a string instead of a file."""
-        body = {"uploaded_file": "just a regular string, not a file"}
-        response = self.client.post(self.list_url, body, format="multipart")
+    def test_create_file_missing_required_fields(self):
+        """Test that creating a file without name or size fails."""
+        response = self.client.post(self.list_url, {}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("name", response.data)
+        self.assertIn("size", response.data)
         self.assertEqual(File.objects.count(), 0)
 
     def test_get_queryset_user_isolation(self):
@@ -102,7 +103,7 @@ class FileAPITestCase(APITestCase):
         body = {
             "size": 999999,
             "file_key": "hacked/path.pdf",
-            "uploaded_file": "just a string",
+            "upload_url": "http://hacked-url.com",
         }
         response = self.client.patch(detail_url, body)
 
