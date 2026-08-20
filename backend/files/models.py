@@ -7,6 +7,9 @@ class File(models.Model):
 
     file_key = models.CharField(max_length=512, unique=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="files")
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=255)
     size = models.PositiveBigIntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.user})"
