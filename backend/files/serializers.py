@@ -5,20 +5,26 @@ from .models import File
 class FileSerializer(serializers.ModelSerializer):
     """Serializer for the File model, providing file metadata and presigned upload URL."""
 
-    presigned_url = serializers.CharField(read_only=True)
+    presigned_upload_url = serializers.CharField(read_only=True)
 
     class Meta:
         model = File
         fields = [
             "id",
-            "presigned_url",
+            "presigned_upload_url",
             "file_key",
             "user",
             "name",
             "size",
             "created_at",
         ]
-        read_only_fields = ["id", "user", "created_at", "file_key", "presigned_url"]
+        read_only_fields = [
+            "id",
+            "user",
+            "created_at",
+            "file_key",
+            "presigned_upload_url",
+        ]
 
 
 class FileUpdateSerializer(serializers.ModelSerializer):

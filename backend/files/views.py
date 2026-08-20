@@ -1,5 +1,6 @@
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from .serializers import FileSerializer, FileUpdateSerializer
 from .services import s3_service
 from .models import File
@@ -24,7 +25,7 @@ class FileViewSet(ModelViewSet):
         """Save file metadata to DB and generate a presigned URL for direct S3 upload."""
         filename = serializer.validated_data["name"]
 
-        file_key, presigned_url = s3_service.generate_presigned_url(
+        file_key, presigned_upload_url = s3_service.generate_presigned_upload_url(
             self.request.user.id, filename
         )
 
@@ -33,4 +34,13 @@ class FileViewSet(ModelViewSet):
             file_key=file_key,
         )
 
-        instance.presigned_url = presigned_url
+        instance.presigned_upload_url = presigned_upload_url
+
+    @action(detail=True, methods=["get"])
+    def download(self, request, pk=None):
+        file_obj = self.get_object()
+        presigned_download_url = s3_service.generate_presigned_download_url(
+            file_obj.file_key, file_obj.name
+        )
+
+        return Response({"presigned_download_url": presigned_download_url})
