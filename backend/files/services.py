@@ -24,7 +24,7 @@ class S3Service:
 
         self.bucket_name = settings.AWS_STORAGE_BUCKET_NAME
 
-    def generate_presigned_url(self, user_id, filename):
+    def generate_presigned_upload_url(self, user_id, filename):
         """Generate a presigned URL for uploading a file to S3."""
         unique_name = f"{uuid.uuid4().hex}_{filename}"
         file_key = f"user_{user_id}/{unique_name}"
@@ -37,7 +37,25 @@ class S3Service:
 
         return file_key, upload_url
 
-    def delete_file(self, file_key: str):
+    def generate_presigned_download_url(self, file_key, filename):
+        """Generate a presigned URL for downloading a file from S3."""
+        params = {
+            "Bucket": self.bucket_name,
+            "Key": file_key,
+        }
+
+        if filename:
+            params["ResponseContentDisposition"] = f'attachment; filename="{filename}"'
+
+        download_url = self.public_s3_client.generate_presigned_url(
+            "get_object",
+            Params=params,
+            ExpiresIn=900,
+        )
+
+        return download_url
+
+    def delete_file(self, file_key):
         """Delete a file from S3 using the provided file key."""
         try:
             self.s3_client.delete_object(Bucket=self.bucket_name, Key=file_key)
