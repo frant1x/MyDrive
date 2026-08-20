@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -25,7 +24,7 @@ class FileAPITestCase(APITestCase):
 
         self.client.force_authenticate(user=self.user_a)
 
-    @patch("files.views.s3_service.generate_presigned_url")
+    @patch("files.views.s3_service.generate_presigned_upload_url")
     def test_create_file_generates_presigned_url(self, mock_generate_url):
         """Test creating a file record and receiving a presigned upload URL."""
         mock_file_key = f"user_{self.user_a.id}/fake-uuid_document.pdf"
@@ -38,7 +37,7 @@ class FileAPITestCase(APITestCase):
         }
         response = self.client.post(self.list_url, body, format="json")
 
-        self.assertEqual(response.data["presigned_url"], mock_upload_url)
+        self.assertEqual(response.data["presigned_upload_url"], mock_upload_url)
         self.assertEqual(response.data["file_key"], mock_file_key)
 
         mock_generate_url.assert_called_once_with(self.user_a.id, "document.pdf")
@@ -70,6 +69,30 @@ class FileAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["name"], "file_a.txt")
+
+    @patch("files.views.s3_service.generate_presigned_download_url")
+    def test_download_file_success(self, mock_generate_download_url):
+        """Test generating a presigned download URL for an existing user file."""
+        file_obj = File.objects.create(
+            user=self.user_a,
+            file_key="user_a/test_download.pdf",
+            name="invoice.pdf",
+            size=2048,
+        )
+        mock_download_url = (
+            "http://localhost:9000/my-app-files/user_a/test_download.pdf?token=abc"
+        )
+        mock_generate_download_url.return_value = mock_download_url
+
+        download_url = reverse("file-download", kwargs={"pk": file_obj.pk})
+        response = self.client.get(download_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["presigned_download_url"], mock_download_url)
+        mock_generate_download_url.assert_called_once_with(
+            file_obj.file_key,
+            file_obj.name,
+        )
 
     def test_rename_file_success(self):
         """Test successful renaming of a file."""
